@@ -1,3 +1,5 @@
+; https://en.wikipedia.org/wiki/INT_10H
+
 org 0x7c00
 bits 16
 
