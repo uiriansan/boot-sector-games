@@ -8,7 +8,8 @@ main:
 
 draw_loop:
     mov ah, 0ch
-    mov al, 4
+    mov al, dl
+    and al, 4
     mov bh, 1
     int 10h
 
