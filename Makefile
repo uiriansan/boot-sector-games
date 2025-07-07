@@ -1,8 +1,18 @@
-ASM=nasm
+ASM=fasm
+SRC_DIR=src
 BUILD_DIR=build
 
-test: $(BUILD_DIR)/test.bin
-	qemu-system-x86_64 -fda $(BUILD_DIR)/test.bin
+.PHONY: all clean
 
-$(BUILD_DIR)/test.bin: test.asm
-	$(ASM) test.asm -f bin -o $(BUILD_DIR)/test.bin
+SRCS=$(wildcard $(SRC_DIR)/*.asm)
+OBJS=$(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%.bin,$(SRCS))
+
+all: $(OBJS)
+
+$(BUILD_DIR)/%.bin: src/%.asm
+	fasm $< $@
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+$(shell mkdir -p $(BUILD_DIR))
