@@ -1,4 +1,4 @@
-format binary
+bits 16
 org 0x7c00
 
 main:
@@ -14,7 +14,7 @@ game_loop:
     call wait_vsync
 
     hlt
-    jmp $
+    jmp halt
 
 wait_vsync:
     mov dx, 0x03da
@@ -68,6 +68,9 @@ clear_background:
     pop ax
     pop di
     pop es
+
+halt:
+    jmp halt
 
 rect_w: db 100 ; 100x35 rect
 rect_h: db 35
