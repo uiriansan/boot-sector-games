@@ -4,20 +4,26 @@ org 0x7c00
 main:
     mov ah, 0x00
     mov al, 0x13
-    int 10h         ; VGA mode
+    int 10h                 ; VGA mode
+
+    push 0xa000             ; VGA 13h frame buffer memory segment
+    pop es                  ; set 'es' to video memory segment. We can't mov it directly
 
 game_loop:
-    call clear_background
+    mov al, 0x1
+    call paint_background
 
+    mov bx, 50              ; x
+    mov dx, 50              ; y
+    mov cx, 100             ; width
+    mov si, 50              ; height
     call draw_rect
 
-    call wait_vsync
-
+    cli
     hlt
-    jmp $
 
 wait_vsync:
-    mov dx, 0x03da
+    mov dx, 0x3da
 wait_vsync_end:
     in al, dx
     test al, 8
@@ -30,47 +36,74 @@ wait_vsync_start:
 
 ; Function to draw a filled rectangle
 ; Parameters:
-;   - CX = x position
+;   - BX = x position
 ;   - DX = y position
-;   - BX = width
+;   - CX = width
 ;   - SI = height
 ;   - AL = color
 draw_rect:
-    mov di, 0x0a000          ; video memory segment
-    mov es, di              ; set 'es' to video memory
+    push si
+    push cx
+    push dx
+    push bx
 
-draw_pixel:
-    mov ah, 0x0c
-    mov al, 4
-    mov bh, 0
-    mov cx, di
-    add cx, rect_w         ; di + width
-    mov dx, si
-    add dx, rect_h         ; di + height
-    int 10h                ; write pixel
+    ; Calculate position in the frame buffer
+    pop bx
+    pop dx
+
+    mov ax, dx
+    mov cx, 320
+    mul cx                  ; ax = ax * cx
+    add ax, bx
+
+    pop cx
+    mov bp, cx
+    pop si
+
+    push ax
+
+draw_row_loop:
+    pop di
+    mov cx, bp
+    call draw_row
+    add di, 320
+    sub di, bp
+    push di
+    dec si
+    test si, si
+    jnz draw_row_loop
 
     ret
 
-clear_background:
-    push es
-    push di
-    push ax
-    push cx
+draw_row:
+    mov al, 0x4
+    rep stosb
+    ret
 
-    mov ax, 0x0a000          ; VGA video memory segment
-    mov es, ax              ; Set ES to video memory
-    xor di, di              ; Start at beginning of video memory
-    xor ax, ax              ; Fill with color 0 (black)
-    mov cx, 32000           ; 320*200/2 words (64000 bytes / 2)
-    rep stosw               ; Fill video memory with zeros
+; Parameters:
+;   AL: color
+paint_background:
+    mov cx, 320*200
+    xor di, di
+    rep stosb
+    ret
 
-    pop cx
-    pop ax
-    pop di
-    pop es
-
-rect_w: db 100 ; 100x35 rect
-rect_h: db 35
+;clear_background:
+;    push es
+;    push di
+;    push ax
+;    push cx
+;
+;    xor di, di
+;    xor ax, ax
+;    mov cx, 32000           ; 320*200/2 words (64000 bytes / 2)
+;    rep stosw               ; Fill video memory with zeros
+;
+;    pop cx
+;    pop ax
+;    pop di
+;    pop es
+;    ret
 
 times 510-($-$$) db 0
 dw 0xaa55
