@@ -13,11 +13,12 @@ game_loop:
     mov al, 0x1
     call paint_background
 
-    mov bx, 50              ; x
-    mov dx, 50              ; y
-    mov cx, 100             ; width
+    mov bx, 30              ; x
+    mov dx, 30              ; y
+    mov cx, 50              ; base width
     mov si, 50              ; height
-    call draw_rect
+    mov al, 0x4
+    call draw_triangle
 
     cli
     hlt
@@ -38,46 +39,48 @@ wait_vsync_start:
 ; Parameters:
 ;   - BX = x position
 ;   - DX = y position
-;   - CX = width
+;   - CX = base width
 ;   - SI = height
 ;   - AL = color
-draw_rect:
+draw_triangle:
+    push ax
     push si
     push cx
     push dx
     push bx
 
-    ; Calculate position in the frame buffer
+    ; Calculate starting position: y * 320 + x
+    mov ax, dx          ; y position
+    mov cx, 320
+    mul cx              ; ax = y * 320
+    add ax, bx          ; ax = y * 320 + x
+    mov di, ax
+
     pop bx
     pop dx
-
-    mov ax, dx
-    mov cx, 320
-    mul cx                  ; ax = ax * cx
-    add ax, bx
-
     pop cx
-    mov bp, cx
     pop si
 
-    push ax
+    mov ax, cx          ; ax = width
+    div si              ; base / height
+    mov bp, ax
 
-draw_row_loop:
-    pop di
-    mov cx, bp
-    call draw_row
-    add di, 320
-    sub di, bp
-    push di
-    dec si
-    test si, si
-    jnz draw_row_loop
+    pop ax
 
-    ret
+    mov cx, 1
 
 draw_row:
-    mov al, 0x4
-    rep stosb
+    push cx             ; save current width
+    push di             ; save row start position
+    rep stosb           ; draw the row
+
+    pop cx              ; restore width
+    inc cx
+    pop di              ; restore row start position
+    add di, 320         ; move to next row
+
+    dec si
+    jnz draw_row
     ret
 
 ; Parameters:
